@@ -81,13 +81,12 @@ public class ReservationServiceImpl implements ReservationService {
     public void deleteItem(ReservationId ReservationId, ReservationItemId reservationItemId) throws ReservationIdNotExistsException, ReservationItemNotFoundException {
         Reservation reservation = reservationRepository.findById(ReservationId).orElseThrow(ReservationIdNotExistsException::new);
         Optional<ReservationItem> reservationItem = reservation.getReservationItemList().stream().filter(v -> v.getId().getId().equals(reservationItemId.getId())).findFirst();
-
-        reservation.removeItem(reservationItem.get().getId());
-        reservation.changeTotal(reservation.total().getAmount());
-        reservationRepository.saveAndFlush(reservation);
-        domainEventPublisher.publish(new ReservationItemCreated(reservationItem.get().getServiceId().getId(), reservationItem.get().getServiceName(), reservationItem.get().getNumberOfPets()));
-
-
+        if (ChronoUnit.DAYS.between(LocalDate.now(), reservationItem.get().getServiceDate()) > 7) {
+            reservation.removeItem(reservationItem.get().getId());
+            reservation.changeTotal(reservation.total().getAmount());
+            reservationRepository.saveAndFlush(reservation);
+            domainEventPublisher.publish(new ReservationItemCreated(reservationItem.get().getServiceId().getId(), reservationItem.get().getServiceName(), reservationItem.get().getNumberOfPets()));
+        }
     }
 
     @Override
